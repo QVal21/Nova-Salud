@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Pencil, Plus } from 'lucide-react'
 import { useData, DIAS_ALERTA_VENCE } from '../context/DataContext'
+import { useAuth } from '../context/AuthContext'
 import { Badge, Chips, EmptyRow, Field, Modal, PageHeader, Panel, SearchBox, btn, inputCls, td, th } from '../components/ui'
 import { diasHasta, fechaCorta, normalizar, soles } from '../utils/format'
 
@@ -14,6 +15,7 @@ export const estadoProducto = (p) => {
 
 export default function Inventario() {
   const { productos, proveedores, guardarProducto } = useData()
+  const esAdmin = useAuth().user?.rol === 'admin' // solo el admin crea o edita productos
   const [q, setQ] = useState('')
   const [categoria, setCategoria] = useState('Todas')
   const [estado, setEstado] = useState('todos')
@@ -32,9 +34,11 @@ export default function Inventario() {
   return (
     <div>
       <PageHeader description="Catálogo de productos con su stock, lote y fecha de vencimiento. El stock solo cambia con ventas o movimientos registrados.">
-        <button onClick={() => setEditando({})} className={btn.primary}>
-          <Plus className="size-4" strokeWidth={3} /> Nuevo producto
-        </button>
+        {esAdmin && (
+          <button onClick={() => setEditando({})} className={btn.primary}>
+            <Plus className="size-4" strokeWidth={3} /> Nuevo producto
+          </button>
+        )}
       </PageHeader>
 
       <Panel>
@@ -94,9 +98,11 @@ export default function Inventario() {
                     </td>
                     <td className={td}><Badge variant={e.variant}>{e.label}</Badge></td>
                     <td className={`${td} text-right`}>
-                      <button onClick={() => setEditando(p)} className={btn.small}>
-                        <Pencil className="size-3.5" /> Editar
-                      </button>
+                      {esAdmin && (
+                        <button onClick={() => setEditando(p)} className={btn.small}>
+                          <Pencil className="size-3.5" /> Editar
+                        </button>
+                      )}
                     </td>
                   </tr>
                 )
@@ -113,8 +119,8 @@ export default function Inventario() {
           categorias={categorias}
           proveedores={proveedores}
           onClose={() => setEditando(null)}
-          onSave={(datos) => {
-            guardarProducto(datos)
+          onSave={async (datos) => {
+            await guardarProducto(datos)
             setEditando(null)
           }}
         />
@@ -131,6 +137,8 @@ function ProductoForm({ producto, categorias, proveedores, onClose, onSave }) {
     ...producto,
   })
   const [err, setErr] = useState({})
+  const [errorGeneral, setErrorGeneral] = useState('')
+  const [enviando, setEnviando] = useState(false)
 
   const set = (k) => (e) => {
     const v = e.target.type === 'checkbox' ? e.target.checked : e.target.value
@@ -138,8 +146,9 @@ function ProductoForm({ producto, categorias, proveedores, onClose, onSave }) {
     setErr({ ...err, [k]: undefined })
   }
 
-  const guardar = (e) => {
+  const guardar = async (e) => {
     e.preventDefault()
+    if (enviando) return
     const n = {}
     if (!f.nombre.trim()) n.nombre = 'Ingresa el nombre'
     if (!f.presentacion.trim()) n.presentacion = 'Ingresa la presentación'
@@ -151,14 +160,22 @@ function ProductoForm({ producto, categorias, proveedores, onClose, onSave }) {
     if (!f.vence) n.vence = 'Ingresa la fecha de vencimiento'
     setErr(n)
     if (Object.keys(n).length) return
-    onSave({
-      ...f,
-      nombre: f.nombre.trim(),
-      precio: Number(f.precio),
-      stock: Number(f.stock),
-      minimo: Number(f.minimo),
-      proveedorId: Number(f.proveedorId),
-    })
+    setEnviando(true)
+    setErrorGeneral('')
+    try {
+      await onSave({
+        ...f,
+        nombre: f.nombre.trim(),
+        precio: Number(f.precio),
+        stock: Number(f.stock),
+        minimo: Number(f.minimo),
+      })
+    } catch (error) {
+      setErr(error.errores ?? {})
+      setErrorGeneral(error.message)
+    } finally {
+      setEnviando(false)
+    }
   }
 
   return (
@@ -170,10 +187,13 @@ function ProductoForm({ producto, categorias, proveedores, onClose, onSave }) {
       footer={
         <>
           <button onClick={onClose} className={btn.secondary}>Cancelar</button>
-          <button onClick={guardar} className={btn.primary}>Guardar</button>
+          <button onClick={guardar} disabled={enviando} className={`${btn.primary} disabled:opacity-70`}>
+            {enviando ? 'Guardando…' : 'Guardar'}
+          </button>
         </>
       }
     >
+      {errorGeneral && <p role="alert" className="mb-4 rounded-2xl bg-danger-tint px-4 py-3 text-sm font-semibold text-danger-deep">{errorGeneral}</p>}
       <form onSubmit={guardar} noValidate className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <Field label="Nombre" htmlFor="nombre" error={err.nombre}>

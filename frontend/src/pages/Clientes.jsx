@@ -61,8 +61,8 @@ export default function Clientes() {
         <ClienteForm
           dnisExistentes={clientes.map((c) => c.dni)}
           onClose={() => setNuevo(false)}
-          onSave={(d) => {
-            guardarCliente(d)
+          onSave={async (d) => {
+            await guardarCliente(d)
             setNuevo(false)
           }}
         />
@@ -100,12 +100,13 @@ export default function Clientes() {
 function ClienteForm({ dnisExistentes, onClose, onSave }) {
   const [f, setF] = useState({ dni: '', nombre: '', telefono: '', email: '' })
   const [err, setErr] = useState({})
+  const [errorGeneral, setErrorGeneral] = useState('')
   const set = (k, soloNumeros) => (e) => {
     setF({ ...f, [k]: soloNumeros ? e.target.value.replace(/\D/g, '') : e.target.value })
     setErr({ ...err, [k]: undefined })
   }
 
-  const guardar = (e) => {
+  const guardar = async (e) => {
     e.preventDefault()
     const n = {}
     if (!/^\d{8}$/.test(f.dni)) n.dni = 'El DNI debe tener 8 dígitos'
@@ -114,7 +115,13 @@ function ClienteForm({ dnisExistentes, onClose, onSave }) {
     if (f.telefono && !/^9\d{8}$/.test(f.telefono)) n.telefono = 'El celular debe tener 9 dígitos y empezar con 9'
     if (f.email && !/^\S+@\S+\.\S+$/.test(f.email)) n.email = 'Correo no válido'
     setErr(n)
-    if (!Object.keys(n).length) onSave({ ...f, nombre: f.nombre.trim() })
+    if (Object.keys(n).length) return
+    try {
+      await onSave({ ...f, nombre: f.nombre.trim() })
+    } catch (error) {
+      setErr(error.errores ?? {})
+      setErrorGeneral(error.message)
+    }
   }
 
   return (
@@ -129,6 +136,7 @@ function ClienteForm({ dnisExistentes, onClose, onSave }) {
         </>
       }
     >
+      {errorGeneral && <p role="alert" className="mb-4 rounded-2xl bg-danger-tint px-4 py-3 text-sm font-semibold text-danger-deep">{errorGeneral}</p>}
       <form onSubmit={guardar} noValidate className="space-y-4">
         <Field label="DNI" htmlFor="dni" error={err.dni}>
           <input id="dni" inputMode="numeric" maxLength={8} value={f.dni} onChange={set('dni', true)} className={inputCls(err.dni)} />

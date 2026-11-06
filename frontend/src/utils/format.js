@@ -29,6 +29,10 @@ export const enDias = (n) => {
 
 export const haceHoras = (h) => new Date(Date.now() - h * 3600000).toISOString()
 
+// 160 -> "2:40 min"
+export const duracion = (seg) =>
+  seg == null ? '—' : `${Math.floor(seg / 60)}:${String(Math.round(seg % 60)).padStart(2, '0')} min`
+
 // Para búsquedas sin importar tildes ni mayúsculas
 export const normalizar = (s) =>
   (s ?? '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')

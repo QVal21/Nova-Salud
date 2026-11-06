@@ -1,17 +1,13 @@
 import { useState } from 'react'
 import { PackageCheck, Plus } from 'lucide-react'
-import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
 import { Badge, EmptyRow, Field, Modal, PageHeader, Panel, btn, inputCls, td, th } from '../components/ui'
 import { fechaCorta } from '../utils/format'
 
 export default function Proveedores() {
-  const { user } = useAuth()
-  const { proveedores, pedidos, productos, guardarProveedor, recibirPedido } = useData()
+  const { proveedores, pedidos, guardarProveedor, recibirPedido, ejecutar } = useData()
   const [nuevo, setNuevo] = useState(false)
 
-  const producto = (id) => productos.find((p) => p.id === id)
-  const proveedor = (id) => proveedores.find((p) => p.id === id)?.razonSocial ?? '—'
 
   return (
     <div className="space-y-6">
@@ -39,15 +35,15 @@ export default function Proveedores() {
               {pedidos.map((p) => (
                 <tr key={p.id}>
                   <td className={`${td} text-muted`}>{fechaCorta(p.fecha)}</td>
-                  <td className={`${td} font-bold`}>{producto(p.productoId)?.nombre}</td>
-                  <td className={`${td} text-muted`}>{proveedor(p.proveedorId)}</td>
+                  <td className={`${td} font-bold`}>{p.productoNombre}</td>
+                  <td className={`${td} text-muted`}>{p.proveedorNombre}</td>
                   <td className={`${td} text-right font-num font-semibold`}>{p.cantidad} u.</td>
                   <td className={td}>
                     {p.estado === 'pendiente' ? <Badge variant="warning">Pendiente</Badge> : <Badge variant="success">Recibido</Badge>}
                   </td>
                   <td className={`${td} text-right`}>
                     {p.estado === 'pendiente' && (
-                      <button onClick={() => recibirPedido(p, user?.nombre)} className={btn.small}>
+                      <button onClick={() => ejecutar(() => recibirPedido(p))} className={btn.small}>
                         <PackageCheck className="size-3.5" /> Marcar recibido
                       </button>
                     )}
@@ -91,8 +87,8 @@ export default function Proveedores() {
       {nuevo && (
         <ProveedorForm
           onClose={() => setNuevo(false)}
-          onSave={(d) => {
-            guardarProveedor(d)
+          onSave={async (d) => {
+            await guardarProveedor(d)
             setNuevo(false)
           }}
         />
@@ -104,12 +100,13 @@ export default function Proveedores() {
 function ProveedorForm({ onClose, onSave }) {
   const [f, setF] = useState({ ruc: '', razonSocial: '', contacto: '', telefono: '', email: '' })
   const [err, setErr] = useState({})
+  const [errorGeneral, setErrorGeneral] = useState('')
   const set = (k, soloNumeros) => (e) => {
     setF({ ...f, [k]: soloNumeros ? e.target.value.replace(/\D/g, '') : e.target.value })
     setErr({ ...err, [k]: undefined })
   }
 
-  const guardar = (e) => {
+  const guardar = async (e) => {
     e.preventDefault()
     const n = {}
     if (!/^(10|20)\d{9}$/.test(f.ruc)) n.ruc = 'El RUC debe tener 11 dígitos y empezar con 10 o 20'
@@ -117,7 +114,13 @@ function ProveedorForm({ onClose, onSave }) {
     if (f.telefono && !/^\d{9}$/.test(f.telefono)) n.telefono = 'El teléfono debe tener 9 dígitos'
     if (f.email && !/^\S+@\S+\.\S+$/.test(f.email)) n.email = 'Correo no válido'
     setErr(n)
-    if (!Object.keys(n).length) onSave(f)
+    if (Object.keys(n).length) return
+    try {
+      await onSave(f)
+    } catch (error) {
+      setErr(error.errores ?? {})
+      setErrorGeneral(error.message)
+    }
   }
 
   return (
@@ -132,6 +135,7 @@ function ProveedorForm({ onClose, onSave }) {
         </>
       }
     >
+      {errorGeneral && <p role="alert" className="mb-4 rounded-2xl bg-danger-tint px-4 py-3 text-sm font-semibold text-danger-deep">{errorGeneral}</p>}
       <form onSubmit={guardar} noValidate className="space-y-4">
         <Field label="RUC" htmlFor="ruc" error={err.ruc}>
           <input id="ruc" inputMode="numeric" maxLength={11} value={f.ruc} onChange={set('ruc', true)} className={inputCls(err.ruc)} />

@@ -20,7 +20,9 @@ const tipoBadge = {
 
 export default function Movimientos() {
   const { user } = useAuth()
+  const esAdmin = user?.rol === 'admin'
   const { productos, movimientos, registrarMovimiento } = useData()
+  const [enviando, setEnviando] = useState(false)
   const { state } = useLocation() // permite llegar desde Alertas con el producto ya elegido
 
   const [tipo, setTipo] = useState(state?.tipo ?? 'entrada')
@@ -31,7 +33,7 @@ export default function Movimientos() {
   const [aviso, setAviso] = useState('')
   const [filtro, setFiltro] = useState('todos')
 
-  const producto = productos.find((p) => p.id === Number(productoId))
+  const producto = productos.find((p) => p.id === productoId)
   const n = Number(cantidad)
   const stockFinal = !producto || cantidad === '' ? null : tipo === 'entrada' ? producto.stock + n : tipo === 'salida' ? producto.stock - n : n
 
@@ -41,19 +43,27 @@ export default function Movimientos() {
     setError('')
   }
 
-  const registrar = (e) => {
+  const registrar = async (e) => {
     e.preventDefault()
+    if (enviando) return
     setAviso('')
+    if (!producto) return setError('Selecciona un producto.')
     if (!Number.isInteger(n) || n < 0 || cantidad === '') return setError('Ingresa una cantidad entera válida.')
     if (tipo !== 'ajuste' && n === 0) return setError('La cantidad debe ser mayor a 0.')
     if (tipo === 'salida' && n > producto.stock) return setError(`Solo hay ${producto.stock} unidades en stock.`)
-    registrarMovimiento({ tipo, productoId: producto.id, cantidad: n, motivo, usuario: user?.nombre })
-    setAviso(`Movimiento registrado. ${producto.nombre} queda con ${stockFinal} unidades.`)
-    setCantidad('')
-    setError('')
+    setEnviando(true)
+    try {
+      const mov = await registrarMovimiento({ tipo, productoId: producto.id, cantidad: n, motivo })
+      setAviso(`Movimiento registrado. ${producto.nombre} queda con ${mov.stockFinal} unidades.`)
+      setCantidad('')
+      setError('')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setEnviando(false)
+    }
   }
 
-  const nombreProducto = (id) => productos.find((p) => p.id === id)?.nombre ?? '—'
   const lista = movimientos.filter((m) => filtro === 'todos' || m.tipo === filtro)
 
   const etiquetaCantidad = { entrada: 'Cantidad que ingresa', salida: 'Cantidad que sale', ajuste: 'Cantidad contada físicamente' }[tipo]
@@ -71,11 +81,11 @@ export default function Movimientos() {
             options={[
               { value: 'entrada', label: 'Entrada' },
               { value: 'salida', label: 'Salida' },
-              { value: 'ajuste', label: 'Ajuste' },
+              ...(esAdmin ? [{ value: 'ajuste', label: 'Ajuste' }] : []),
             ]}
           />
           <Field label="Producto" htmlFor="producto">
-            <select id="producto" value={productoId} onChange={(e) => setProductoId(Number(e.target.value))} className={inputCls(false)}>
+            <select id="producto" value={productoId} onChange={(e) => setProductoId(e.target.value)} className={inputCls(false)}>
               {productos.map((p) => (
                 <option key={p.id} value={p.id}>{p.nombre} · stock {p.stock}</option>
               ))}
@@ -104,7 +114,9 @@ export default function Movimientos() {
           {error && <p className="text-sm font-semibold text-danger">{error}</p>}
           {aviso && <p className="text-sm font-semibold text-brand">{aviso}</p>}
 
-          <button type="submit" className={`${btn.primary} w-full`}>Registrar movimiento</button>
+          <button type="submit" disabled={enviando} className={`${btn.primary} w-full disabled:opacity-70`}>
+            {enviando ? 'Registrando…' : 'Registrar movimiento'}
+          </button>
         </form>
       </Panel>
 
@@ -140,7 +152,7 @@ export default function Movimientos() {
                 <tr key={m.id}>
                   <td className={`${td} whitespace-nowrap text-muted`}>{fechaHora(m.fecha)}</td>
                   <td className={td}>{tipoBadge[m.tipo]}</td>
-                  <td className={`${td} font-bold`}>{nombreProducto(m.productoId)}</td>
+                  <td className={`${td} font-bold`}>{m.productoNombre}</td>
                   <td className={`${td} text-right font-num font-semibold ${m.cantidad < 0 ? 'text-danger' : 'text-brand'}`}>
                     {m.cantidad > 0 ? `+${m.cantidad}` : m.cantidad}
                   </td>

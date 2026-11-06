@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react'
 import { CheckCircle2, Minus, Plus, Printer, Trash2 } from 'lucide-react'
-import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
 import { Badge, Chips, Field, Modal, SearchBox, Segmented, btn, inputCls } from '../components/ui'
 import { normalizar, soles } from '../utils/format'
@@ -12,9 +11,10 @@ const metodos = [
 ]
 
 export default function PuntoVenta() {
-  const { user } = useAuth()
   const { productos, clientes, registrarVenta } = useData()
   const busquedaRef = useRef(null)
+  const inicioRef = useRef(null) // momento en que se agregó el primer producto: mide el tiempo de atención
+  const [enviando, setEnviando] = useState(false)
 
   const [q, setQ] = useState('')
   const [categoria, setCategoria] = useState('Todas')
@@ -42,6 +42,7 @@ export default function PuntoVenta() {
 
   const agregar = (p) => {
     if (p.stock <= 0) return
+    if (!inicioRef.current) inicioRef.current = Date.now()
     setError('')
     setCarrito((c) => {
       const existe = c.find((i) => i.id === p.id)
@@ -70,26 +71,29 @@ export default function PuntoVenta() {
     }
   }
 
-  const cobrar = () => {
+  const cobrar = async () => {
+    if (enviando) return
     if (!carrito.length) return setError('Agrega al menos un producto.')
     if (tipo === 'factura' && !/^\d{11}$/.test(documento)) return setError('Para factura ingresa un RUC de 11 dígitos.')
     if (documento && tipo === 'boleta' && !/^\d{8}$/.test(documento)) return setError('El DNI debe tener 8 dígitos.')
     if (metodo === 'efectivo' && recibido !== '' && Number(recibido) < total) return setError('El monto recibido no cubre el total.')
 
-    const datosCliente = cliente
-      ? { id: cliente.id, nombre: cliente.nombre, dni: cliente.dni }
-      : documento
-        ? { nombre: tipo === 'factura' ? `RUC ${documento}` : `DNI ${documento}`, dni: documento }
-        : null
-
-    const venta = registrarVenta({
-      items: carrito.map(({ stock, receta, ...i }) => i),
-      cliente: datosCliente,
-      tipo,
-      metodo,
-      vendedor: user?.nombre,
-    })
-    setVentaHecha({ ...venta, vuelto })
+    setEnviando(true)
+    try {
+      // El backend toma precios y descuenta stock; aquí solo se envían productos y cantidades
+      const venta = await registrarVenta({
+        items: carrito.map((i) => ({ productoId: i.id, cantidad: i.cantidad })),
+        tipo,
+        metodo,
+        documento,
+        duracionSegundos: inicioRef.current ? Math.round((Date.now() - inicioRef.current) / 1000) : undefined,
+      })
+      setVentaHecha({ ...venta, vuelto })
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setEnviando(false)
+    }
   }
 
   const nuevaVenta = () => {
@@ -101,6 +105,7 @@ export default function PuntoVenta() {
     setError('')
     setQ('')
     setVentaHecha(null)
+    inicioRef.current = null
     setTimeout(() => busquedaRef.current?.focus(), 0)
   }
 
@@ -236,8 +241,8 @@ export default function PuntoVenta() {
 
         {error && <p className="mt-4 text-sm font-semibold text-danger">{error}</p>}
 
-        <button onClick={cobrar} className={`${btn.primary} mt-5 w-full py-4 text-base`}>
-          Cobrar {soles(total)}
+        <button onClick={cobrar} disabled={enviando} className={`${btn.primary} mt-5 w-full py-4 text-base disabled:cursor-wait disabled:opacity-70`}>
+          {enviando ? 'Registrando…' : `Cobrar ${soles(total)}`}
         </button>
       </aside>
 

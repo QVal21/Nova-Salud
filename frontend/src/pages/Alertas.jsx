@@ -2,16 +2,16 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PackagePlus, PackageX } from 'lucide-react'
 import { useData, DIAS_ALERTA_VENCE } from '../context/DataContext'
-import { Badge, Chips, EmptyRow, PageHeader, Panel, btn, td, th } from '../components/ui'
+import { Badge, Chips, EmptyRow, Field, Modal, PageHeader, Panel, btn, inputCls, td, th } from '../components/ui'
 import { fechaCorta } from '../utils/format'
 
 export default function Alertas() {
-  const { alertas, proveedores, pedidos, generarPedido } = useData()
+  const { alertas, pedidos, generarPedido } = useData()
   const navigate = useNavigate()
   const [filtro, setFiltro] = useState('todas')
+  const [pidiendo, setPidiendo] = useState(null) // producto para el que se arma el pedido
 
   const lista = alertas.filter((a) => filtro === 'todas' || a.tipo === filtro)
-  const proveedor = (id) => proveedores.find((p) => p.id === id)?.razonSocial ?? '—'
   const pedidoPendiente = (productoId) => pedidos.some((p) => p.productoId === productoId && p.estado === 'pendiente')
 
   const detalleVence = (a) =>
@@ -69,13 +69,13 @@ export default function Alertas() {
                       detalleVence(a)
                     )}
                   </td>
-                  <td className={`${td} text-muted`}>{proveedor(a.proveedorId)}</td>
+                  <td className={`${td} text-muted`}>{a.proveedorNombre}</td>
                   <td className={`${td} text-right`}>
                     {a.tipo === 'bajo' ? (
                       pedidoPendiente(a.id) ? (
                         <Badge variant="info">Pedido pendiente</Badge>
                       ) : (
-                        <button onClick={() => generarPedido(a)} className={btn.small}>
+                        <button onClick={() => setPidiendo(a)} className={btn.small}>
                           <PackagePlus className="size-3.5" /> Generar pedido
                         </button>
                       )
@@ -95,6 +95,79 @@ export default function Alertas() {
           </table>
         </div>
       </Panel>
+
+      {pidiendo && (
+        <PedidoModal
+          producto={pidiendo}
+          onClose={() => setPidiendo(null)}
+          onConfirm={async (cantidad) => {
+            await generarPedido(pidiendo, cantidad)
+            setPidiendo(null)
+          }}
+        />
+      )}
     </div>
+  )
+}
+
+function PedidoModal({ producto, onClose, onConfirm }) {
+  const sugerido = Math.max(producto.minimo * 2 - producto.stock, producto.minimo, 1)
+  const [cantidad, setCantidad] = useState(String(sugerido))
+  const [error, setError] = useState('')
+  const [enviando, setEnviando] = useState(false)
+
+  const confirmar = async (e) => {
+    e.preventDefault()
+    const n = Number(cantidad)
+    if (!Number.isInteger(n) || n <= 0) return setError('Ingresa una cantidad entera mayor a 0')
+    setEnviando(true)
+    try {
+      await onConfirm(n)
+    } catch (err) {
+      setError(err.message)
+      setEnviando(false)
+    }
+  }
+
+  return (
+    <Modal
+      open
+      title="Generar pedido de reposición"
+      onClose={onClose}
+      footer={
+        <>
+          <button onClick={onClose} className={btn.secondary}>Cancelar</button>
+          <button onClick={confirmar} disabled={enviando} className={`${btn.primary} disabled:opacity-70`}>
+            {enviando ? 'Enviando…' : 'Enviar pedido'}
+          </button>
+        </>
+      }
+    >
+      <form onSubmit={confirmar} noValidate>
+        <p className="font-bold">{producto.nombre}</p>
+        <p className="text-sm font-medium text-muted">{producto.presentacion} · {producto.proveedorNombre}</p>
+
+        <dl className="mt-4 grid grid-cols-3 gap-px overflow-hidden rounded-2xl bg-line ring-1 ring-line text-center">
+          <div className="bg-surface p-3"><dt className="text-xs font-semibold text-muted">Stock actual</dt><dd className="font-num text-lg font-semibold">{producto.stock}</dd></div>
+          <div className="bg-surface p-3"><dt className="text-xs font-semibold text-muted">Mínimo</dt><dd className="font-num text-lg font-semibold">{producto.minimo}</dd></div>
+          <div className="bg-surface p-3"><dt className="text-xs font-semibold text-muted">Sugerido</dt><dd className="font-num text-lg font-semibold">{sugerido}</dd></div>
+        </dl>
+
+        <div className="mt-5">
+          <Field label="Cantidad a pedir" htmlFor="cantidad-pedido" error={error} hint="Una vez enviado, el pedido ya no se puede modificar.">
+            <input
+              id="cantidad-pedido"
+              type="number"
+              min="1"
+              step="1"
+              autoFocus
+              value={cantidad}
+              onChange={(e) => { setCantidad(e.target.value); setError('') }}
+              className={inputCls(error)}
+            />
+          </Field>
+        </div>
+      </form>
+    </Modal>
   )
 }

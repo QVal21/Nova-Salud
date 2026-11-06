@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { useData } from '../context/DataContext'
+import { useAuth } from '../context/AuthContext'
 import { Badge, Field, Modal, PageHeader, Panel, Segmented, btn, inputCls, td, th } from '../components/ui'
 
 export default function Usuarios() {
-  const { usuarios, guardarUsuario, alternarUsuario } = useData()
+  const { usuarios, guardarUsuario, alternarUsuario, ejecutar } = useData()
+  const yo = useAuth().user
   const [nuevo, setNuevo] = useState(false)
 
   return (
@@ -35,9 +37,11 @@ export default function Usuarios() {
                   <td className={td}>{u.rol === 'admin' ? <Badge variant="info">Administrador</Badge> : <Badge>Vendedor</Badge>}</td>
                   <td className={td}>{u.activo ? <Badge variant="success">Activo</Badge> : <Badge variant="danger">Inactivo</Badge>}</td>
                   <td className={`${td} text-right`}>
-                    <button onClick={() => alternarUsuario(u.id)} className={btn.small}>
-                      {u.activo ? 'Desactivar' : 'Activar'}
-                    </button>
+                    {u.id !== yo?.id && (
+                      <button onClick={() => ejecutar(() => alternarUsuario(u))} className={btn.small}>
+                        {u.activo ? 'Desactivar' : 'Activar'}
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -50,8 +54,8 @@ export default function Usuarios() {
         <UsuarioForm
           existentes={usuarios.map((u) => u.usuario)}
           onClose={() => setNuevo(false)}
-          onSave={(d) => {
-            guardarUsuario(d)
+          onSave={async (d) => {
+            await guardarUsuario(d)
             setNuevo(false)
           }}
         />
@@ -63,12 +67,13 @@ export default function Usuarios() {
 function UsuarioForm({ existentes, onClose, onSave }) {
   const [f, setF] = useState({ nombre: '', usuario: '', rol: 'vendedor', clave: '' })
   const [err, setErr] = useState({})
+  const [errorGeneral, setErrorGeneral] = useState('')
   const set = (k) => (e) => {
     setF({ ...f, [k]: e.target.value })
     setErr({ ...err, [k]: undefined })
   }
 
-  const guardar = (e) => {
+  const guardar = async (e) => {
     e.preventDefault()
     const n = {}
     if (!f.nombre.trim()) n.nombre = 'Ingresa el nombre'
@@ -76,8 +81,14 @@ function UsuarioForm({ existentes, onClose, onSave }) {
     else if (existentes.includes(f.usuario)) n.usuario = 'Ese usuario ya existe'
     if (f.clave.length < 6) n.clave = 'La contraseña debe tener al menos 6 caracteres'
     setErr(n)
-    // La contraseña se enviará al backend, que la guarda cifrada con bcrypt
-    if (!Object.keys(n).length) onSave({ nombre: f.nombre.trim(), usuario: f.usuario, rol: f.rol })
+    if (Object.keys(n).length) return
+    try {
+      // El backend guarda la contraseña cifrada con bcrypt
+      await onSave({ nombre: f.nombre.trim(), usuario: f.usuario, rol: f.rol, clave: f.clave })
+    } catch (error) {
+      setErr(error.errores ?? {})
+      setErrorGeneral(error.message)
+    }
   }
 
   return (
@@ -92,6 +103,7 @@ function UsuarioForm({ existentes, onClose, onSave }) {
         </>
       }
     >
+      {errorGeneral && <p role="alert" className="mb-4 rounded-2xl bg-danger-tint px-4 py-3 text-sm font-semibold text-danger-deep">{errorGeneral}</p>}
       <form onSubmit={guardar} noValidate className="space-y-4">
         <Field label="Nombre completo" htmlFor="nombre" error={err.nombre}>
           <input id="nombre" value={f.nombre} onChange={set('nombre')} className={inputCls(err.nombre)} />

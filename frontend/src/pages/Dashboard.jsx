@@ -1,32 +1,32 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, CalendarClock, PackageMinus, Plus } from 'lucide-react'
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
-import { tiempoPromedioAtencion, ventasSemanaBase } from '../data/mock'
+import { api } from '../services/api'
 import { MetricStrip, Badge, btn } from '../components/ui'
-import { esHoy, fechaCorta, soles, diasDesde } from '../utils/format'
+import { duracion, fechaCorta, soles } from '../utils/format'
+
+const etiquetaDia = (iso, i, total) =>
+  i === total - 1 ? 'Hoy' : new Date(`${iso}T12:00:00`).toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric' })
 
 export default function Dashboard() {
   const { user } = useAuth()
-  const { ventas, alertas } = useData()
+  const { ventas, alertas, setError } = useData()
+  const [resumen, setResumen] = useState(null)
 
-  const ventasHoy = ventas.filter((v) => esHoy(v.fecha))
-  const totalHoy = ventasHoy.reduce((s, v) => s + v.total, 0)
+  // Se vuelve a pedir cuando cambian las ventas (por ejemplo, después de cobrar)
+  useEffect(() => {
+    api.get('/reportes/resumen').then(setResumen).catch((e) => setError(e.message))
+  }, [ventas.length, setError])
+
+  const hoy = resumen?.hoy ?? { total: 0, comprobantes: 0, tiempoPromedioSegundos: null }
+  const semana = (resumen?.semana ?? []).map((d, i, arr) => ({ ...d, dia: etiquetaDia(d.fecha, i, arr.length) }))
+  const masVendidos = resumen?.masVendidos ?? []
+  const maxUnidades = Math.max(1, ...masVendidos.map((p) => p.unidades))
   const stockBajo = alertas.filter((a) => a.tipo === 'bajo').length
   const porVencer = alertas.filter((a) => a.tipo === 'vence').length
-  const semana = [...ventasSemanaBase, { dia: 'Hoy', total: totalHoy }]
-
-  // Más vendidos de los últimos 7 días, calculado desde las ventas
-  const conteo = {}
-  ventas
-    .filter((v) => diasDesde(v.fecha) < 7)
-    .forEach((v) => v.items.forEach((i) => (conteo[i.nombre] = (conteo[i.nombre] ?? 0) + i.cantidad)))
-  const masVendidos = Object.entries(conteo)
-    .map(([nombre, unidades]) => ({ nombre, unidades }))
-    .sort((a, b) => b.unidades - a.unidades)
-    .slice(0, 5)
-  const maxUnidades = Math.max(1, ...masVendidos.map((p) => p.unidades))
 
   return (
     <div className="space-y-6">
@@ -35,7 +35,7 @@ export default function Dashboard() {
           <Plus aria-hidden="true" strokeWidth={2.5} className="pointer-events-none absolute -right-6 -bottom-10 size-56 text-surface/10" />
           <p className="text-sm font-semibold text-brand-tint">Turno de {user?.nombre}</p>
           <h2 className="mt-2 max-w-md text-2xl leading-snug font-extrabold sm:text-3xl">
-            Hoy van {ventasHoy.length} ventas y {alertas.length} alertas de inventario.
+            Hoy van {hoy.comprobantes} ventas y {alertas.length} alertas de inventario.
           </h2>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link to="/punto-venta" className="inline-flex items-center gap-2 rounded-2xl bg-surface px-5 py-3 text-sm font-bold text-brand-deep transition-colors hover:bg-brand-tint">
@@ -64,9 +64,9 @@ export default function Dashboard() {
 
       <MetricStrip
         items={[
-          { label: 'Ventas de hoy', valor: soles(totalHoy) },
-          { label: 'Comprobantes emitidos', valor: ventasHoy.length },
-          { label: 'Tiempo promedio de atención', valor: `${tiempoPromedioAtencion} min` },
+          { label: 'Ventas de hoy', valor: soles(hoy.total) },
+          { label: 'Comprobantes emitidos', valor: hoy.comprobantes },
+          { label: 'Tiempo promedio de atención', valor: duracion(hoy.tiempoPromedioSegundos) },
           { label: 'Alertas activas', valor: alertas.length },
         ]}
       />
@@ -85,7 +85,7 @@ export default function Dashboard() {
                 <Tooltip cursor={{ fill: '#dcf0f3' }} formatter={(v) => [soles(v), 'Ventas']} contentStyle={{ borderRadius: 14, border: '1px solid #dbe6ec', fontFamily: 'Manrope' }} />
                 <Bar dataKey="total" radius={[10, 10, 10, 10]} maxBarSize={36}>
                   {semana.map((d) => (
-                    <Cell key={d.dia} fill={d.dia === 'Hoy' ? '#237c8c' : '#7fc6d1'} />
+                    <Cell key={d.fecha} fill={d.dia === 'Hoy' ? '#237c8c' : '#7fc6d1'} />
                   ))}
                 </Bar>
               </BarChart>
@@ -97,7 +97,7 @@ export default function Dashboard() {
           <h2 className="text-lg font-extrabold">Más vendidos esta semana</h2>
           <ol className="mt-4 divide-y divide-line">
             {masVendidos.map((p, i) => (
-              <li key={p.nombre} className="flex items-center gap-4 py-3">
+              <li key={p.productoId} className="flex items-center gap-4 py-3">
                 <span className="font-num text-sm font-semibold text-muted">{i + 1}</span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-bold">{p.nombre}</p>
@@ -108,6 +108,7 @@ export default function Dashboard() {
                 <span className="font-num text-sm font-semibold">{p.unidades} u.</span>
               </li>
             ))}
+            {!masVendidos.length && <li className="py-6 text-center text-sm font-medium text-muted">Aún no hay ventas esta semana.</li>}
           </ol>
         </div>
       </section>
@@ -142,6 +143,9 @@ export default function Dashboard() {
                   </td>
                 </tr>
               ))}
+              {!alertas.length && (
+                <tr><td colSpan={5} className="py-8 text-center text-sm font-medium text-muted">Sin alertas. El inventario está en orden.</td></tr>
+              )}
             </tbody>
           </table>
         </div>

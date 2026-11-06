@@ -1,37 +1,26 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { api, guardarSesion, leerSesion, onSesionExpirada } from '../services/api'
 
-// Maqueta: la sesión se guarda en localStorage.
-// Cuando exista el backend, login() llamará a POST /api/auth/login y guardará el JWT.
 const AuthContext = createContext(null)
-const KEY = 'nova-salud-sesion'
-
-function leerSesion() {
-  try {
-    const raw = localStorage.getItem(KEY)
-    return raw ? JSON.parse(raw) : null
-  } catch {
-    return null
-  }
-}
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(leerSesion)
+  const [sesion, setSesion] = useState(leerSesion) // { token, usuario }
 
-  const login = (datos) => {
-    setUser(datos)
-    try {
-      localStorage.setItem(KEY, JSON.stringify(datos))
-    } catch {}
+  const logout = useCallback(() => {
+    guardarSesion(null)
+    setSesion(null)
+  }, [])
+
+  useEffect(() => onSesionExpirada(logout), [logout])
+
+  const login = async (usuario, clave) => {
+    const datos = await api.post('/auth/login', { usuario, clave })
+    guardarSesion(datos)
+    setSesion(datos)
+    return datos.usuario
   }
 
-  const logout = () => {
-    setUser(null)
-    try {
-      localStorage.removeItem(KEY)
-    } catch {}
-  }
-
-  return <AuthContext.Provider value={{ user, login, logout }}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={{ user: sesion?.usuario ?? null, login, logout }}>{children}</AuthContext.Provider>
 }
 
 export const useAuth = () => useContext(AuthContext)

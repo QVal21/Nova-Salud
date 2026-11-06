@@ -12,32 +12,41 @@ const puntos = [
 export default function Login() {
   const { user, login } = useAuth()
   const navigate = useNavigate()
-  const [form, setForm] = useState({ usuario: '', clave: '', rol: 'vendedor' })
+  const [form, setForm] = useState({ usuario: '', clave: '' })
   const [errores, setErrores] = useState({})
+  const [errorGeneral, setErrorGeneral] = useState('')
   const [verClave, setVerClave] = useState(false)
+  const [enviando, setEnviando] = useState(false)
 
   if (user) return <Navigate to="/" replace />
 
   const cambiar = (campo) => (e) => {
     setForm({ ...form, [campo]: e.target.value })
     setErrores({ ...errores, [campo]: undefined })
+    setErrorGeneral('')
   }
 
-  const enviar = (e) => {
+  const enviar = async (e) => {
     e.preventDefault()
     const nuevos = {}
     if (!form.usuario.trim()) nuevos.usuario = 'Ingresa tu usuario'
-    if (form.clave.length < 6) nuevos.clave = 'La contraseña debe tener al menos 6 caracteres'
+    if (!form.clave) nuevos.clave = 'Ingresa tu contraseña'
     setErrores(nuevos)
     if (Object.keys(nuevos).length) return
 
-    // Maqueta: aquí irá la llamada a POST /api/auth/login
-    login({ nombre: form.usuario.trim(), rol: form.rol })
-    navigate('/')
+    setEnviando(true)
+    try {
+      await login(form.usuario.trim(), form.clave)
+      navigate('/')
+    } catch (err) {
+      setErrorGeneral(err.message)
+      setErrores(err.errores ?? {})
+    } finally {
+      setEnviando(false)
+    }
   }
 
-  const input =
-    'w-full rounded-2xl bg-surface px-4 py-3 text-sm ring-1 outline-none transition-shadow focus:ring-2'
+  const input = 'w-full rounded-2xl bg-surface px-4 py-3 text-sm ring-1 outline-none transition-shadow focus:ring-2'
 
   return (
     <div className="grid min-h-screen bg-page lg:grid-cols-2">
@@ -50,9 +59,7 @@ export default function Login() {
         </div>
 
         <div>
-          <h2 className="max-w-md text-4xl leading-tight font-extrabold tracking-tight">
-            Inventario y ventas de la botica en un solo lugar.
-          </h2>
+          <h2 className="max-w-md text-4xl leading-tight font-extrabold tracking-tight">Inventario y ventas de la botica en un solo lugar.</h2>
           <ul className="mt-8 space-y-4">
             {puntos.map(({ icon: Icon, texto }) => (
               <li key={texto} className="flex items-center gap-3 font-semibold">
@@ -78,15 +85,22 @@ export default function Login() {
           <h1 className="text-3xl font-extrabold tracking-tight">Iniciar sesión</h1>
           <p className="mt-2 text-sm font-medium text-muted">Ingresa con la cuenta que te asignó el administrador.</p>
 
-          <div className="mt-8 space-y-5">
+          {errorGeneral && (
+            <p role="alert" className="mt-6 rounded-2xl bg-danger-tint px-4 py-3 text-sm font-semibold text-danger-deep">
+              {errorGeneral}
+            </p>
+          )}
+
+          <div className="mt-6 space-y-5">
             <div>
               <label htmlFor="usuario" className="mb-2 block text-sm font-semibold">Usuario</label>
               <input
                 id="usuario"
                 value={form.usuario}
                 onChange={cambiar('usuario')}
-                placeholder="nayeli.quispe"
+                placeholder="ana.torres"
                 autoComplete="username"
+                autoCapitalize="none"
                 className={`${input} ${errores.usuario ? 'ring-danger' : 'ring-line focus:ring-brand'}`}
               />
               {errores.usuario && <p className="mt-1.5 text-xs font-semibold text-danger">{errores.usuario}</p>}
@@ -114,31 +128,14 @@ export default function Login() {
               </div>
               {errores.clave && <p className="mt-1.5 text-xs font-semibold text-danger">{errores.clave}</p>}
             </div>
-
-            <div>
-              <p className="mb-2 text-sm font-semibold">Ingresar como</p>
-              <div className="grid grid-cols-2 gap-1 rounded-2xl bg-surface p-1 ring-1 ring-line">
-                {['vendedor', 'admin'].map((rol) => (
-                  <button
-                    key={rol}
-                    type="button"
-                    onClick={() => setForm({ ...form, rol })}
-                    className={`rounded-xl py-2.5 text-sm font-semibold capitalize transition-colors ${
-                      form.rol === rol ? 'bg-brand-tint text-brand-deep' : 'text-muted hover:text-ink'
-                    }`}
-                  >
-                    {rol === 'admin' ? 'Administrador' : 'Vendedor'}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
 
           <button
             type="submit"
-            className="mt-8 w-full rounded-2xl bg-brand py-3.5 text-sm font-bold text-surface transition-colors hover:bg-brand-deep"
+            disabled={enviando}
+            className="mt-8 w-full rounded-2xl bg-brand py-3.5 text-sm font-bold text-surface transition-colors hover:bg-brand-deep disabled:cursor-wait disabled:opacity-70"
           >
-            Ingresar
+            {enviando ? 'Ingresando…' : 'Ingresar'}
           </button>
         </form>
       </section>
