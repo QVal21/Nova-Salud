@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+/* Paleta Nova Salud: todos los neutros llevan tinte azul/verde (sin negro ni gris puros) */
+@theme {
+  --font-sans: "Manrope", sans-serif;
+  --font-num: "Space Grotesk", sans-serif;
+
+  --color-ink: #18264a;
+  --color-muted: #566a80;
+  --color-page: #edf3f6;
+  --color-surface: #fbfdfe;
+  --color-line: #dbe6ec;
+
+  --color-brand-soft: #7fc6d1;
+  --color-brand: #237c8c;
+  --color-brand-deep: #0f4a55;
+  --color-brand-tint: #dcf0f3;
+
+  --color-sky: #8ab8f5;
+  --color-sky-deep: #14306a;
+
+  --color-sun: #f6c04c;
+  --color-sun-tint: #fdf1d3;
+  --color-sun-deep: #6e4a06;
+
+  --color-danger: #c2412f;
+  --color-danger-tint: #fbe3de;
+  --color-danger-deep: #7e2416;
+}
+
+html,
+body {
+  background: var(--color-page);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
