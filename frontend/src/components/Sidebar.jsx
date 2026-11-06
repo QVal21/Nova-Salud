@@ -16,9 +16,8 @@ export default function Sidebar({ open, onClose }) {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-brand-soft text-brand-deep transition-transform duration-200 ease-out lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:shrink-0 lg:translate-x-0 lg:rounded-r-[36px] ${
-          open ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col bg-brand-soft text-brand-deep transition-transform duration-200 ease-out lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:shrink-0 lg:translate-x-0 lg:rounded-r-[36px] ${open ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         <div className="flex items-center justify-between px-6 pt-7 pb-6">
           <div className="flex items-center gap-3">
@@ -48,12 +47,11 @@ export default function Sidebar({ open, onClose }) {
                   end={end}
                   onClick={onClose}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-semibold transition-colors ${
-                      isActive ? 'bg-surface text-brand-deep' : 'hover:bg-surface/35'
+                    `flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-semibold transition-colors ${isActive ? 'bg-surface text-brand-deep' : 'hover:bg-surface/35'
                     }`
                   }
                 >
-                  <Icon className="size-[18px]" strokeWidth={2} />
+                  <Icon className="size-4.5" strokeWidth={2} />
                   <span className="flex-1">{label}</span>
                   {path === '/alertas' && (
                     <span className="rounded-full bg-sun px-2 py-0.5 text-xs font-bold text-sun-deep">
