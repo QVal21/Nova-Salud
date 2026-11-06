@@ -2,10 +2,11 @@ import { NavLink } from 'react-router-dom'
 import { LogOut, Plus, X } from 'lucide-react'
 import { navItems } from '../config/nav'
 import { useAuth } from '../context/AuthContext'
-import { alertasActivas } from '../data/mock'
+import { useData } from '../context/DataContext'
 
 export default function Sidebar({ open, onClose }) {
   const { user, logout } = useAuth()
+  const alertasActivas = useData().alertas.length
   const items = navItems.filter((i) => !i.roles || i.roles.includes(user?.rol))
 
   return (

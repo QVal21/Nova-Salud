@@ -3,7 +3,15 @@ import { useAuth } from './context/AuthContext'
 import AppLayout from './layouts/AppLayout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
-import Placeholder from './pages/Placeholder'
+import PuntoVenta from './pages/PuntoVenta'
+import Inventario from './pages/Inventario'
+import Movimientos from './pages/Movimientos'
+import Alertas from './pages/Alertas'
+import Ventas from './pages/Ventas'
+import Clientes from './pages/Clientes'
+import Proveedores from './pages/Proveedores'
+import Reportes from './pages/Reportes'
+import Usuarios from './pages/Usuarios'
 
 function RequireAuth({ children }) {
   const { user } = useAuth()
@@ -28,15 +36,15 @@ export default function App() {
         }
       >
         <Route index element={<Dashboard />} />
-        <Route path="punto-venta" element={<Placeholder />} />
-        <Route path="inventario" element={<Placeholder />} />
-        <Route path="movimientos" element={<Placeholder />} />
-        <Route path="alertas" element={<Placeholder />} />
-        <Route path="ventas" element={<Placeholder />} />
-        <Route path="clientes" element={<Placeholder />} />
-        <Route path="proveedores" element={<RequireRole rol="admin"><Placeholder /></RequireRole>} />
-        <Route path="reportes" element={<RequireRole rol="admin"><Placeholder /></RequireRole>} />
-        <Route path="usuarios" element={<RequireRole rol="admin"><Placeholder /></RequireRole>} />
+        <Route path="punto-venta" element={<PuntoVenta />} />
+        <Route path="inventario" element={<Inventario />} />
+        <Route path="movimientos" element={<Movimientos />} />
+        <Route path="alertas" element={<Alertas />} />
+        <Route path="ventas" element={<Ventas />} />
+        <Route path="clientes" element={<Clientes />} />
+        <Route path="proveedores" element={<RequireRole rol="admin"><Proveedores /></RequireRole>} />
+        <Route path="reportes" element={<RequireRole rol="admin"><Reportes /></RequireRole>} />
+        <Route path="usuarios" element={<RequireRole rol="admin"><Usuarios /></RequireRole>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
