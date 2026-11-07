@@ -18,7 +18,7 @@ export const navItems = [
   { path: '/inventario', label: 'Inventario', icon: Package },
   { path: '/movimientos', label: 'Movimientos', icon: ArrowLeftRight },
   { path: '/alertas', label: 'Alertas', icon: BellRing },
-  { path: '/ventas', label: 'Ventas', icon: Receipt },
+  { path: '/ventas', label: 'Registro de ventas', icon: Receipt },
   { path: '/clientes', label: 'Clientes', icon: Users },
   { path: '/proveedores', label: 'Proveedores', icon: Truck, roles: ['admin'] },
   { path: '/reportes', label: 'Reportes', icon: BarChart3, roles: ['admin'] },

@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
-import { Badge, Chips, EmptyRow, Field, Panel, Segmented, btn, inputCls, td, th } from '../components/ui'
+import { Badge, Chips, Dropdown, EmptyRow, Field, Panel, Segmented, btn, inputCls, td, th } from '../components/ui'
 import { fechaHora } from '../utils/format'
 
 const motivos = {
@@ -69,8 +69,8 @@ export default function Movimientos() {
   const etiquetaCantidad = { entrada: 'Cantidad que ingresa', salida: 'Cantidad que sale', ajuste: 'Cantidad contada físicamente' }[tipo]
 
   return (
-    <div className="grid items-start gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
-      <Panel className="xl:sticky xl:top-6">
+    <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
+      <Panel className="min-w-0 xl:sticky xl:top-6">
         <h2 className="text-lg font-extrabold">Registrar movimiento</h2>
         <p className="mt-1 text-sm font-medium text-muted">Cada cambio de stock queda registrado con usuario, fecha y motivo.</p>
 
@@ -85,19 +85,23 @@ export default function Movimientos() {
             ]}
           />
           <Field label="Producto" htmlFor="producto">
-            <select id="producto" value={productoId} onChange={(e) => setProductoId(e.target.value)} className={inputCls(false)}>
-              {productos.map((p) => (
-                <option key={p.id} value={p.id}>{p.nombre} · stock {p.stock}</option>
-              ))}
-            </select>
+            <Dropdown
+              id="producto"
+              options={productos.map((p) => ({ value: p.id, label: `${p.nombre} · stock ${p.stock}` }))}
+              value={productoId}
+              onChange={setProductoId}
+            />
           </Field>
           <Field label={etiquetaCantidad} htmlFor="cantidad">
             <input id="cantidad" type="number" min="0" value={cantidad} onChange={(e) => { setCantidad(e.target.value); setError('') }} className={inputCls(error)} />
           </Field>
           <Field label="Motivo" htmlFor="motivo">
-            <select id="motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} className={inputCls(false)}>
-              {motivos[tipo].map((m) => <option key={m}>{m}</option>)}
-            </select>
+            <Dropdown
+              id="motivo"
+              options={motivos[tipo].map((m) => ({ value: m, label: m }))}
+              value={motivo}
+              onChange={setMotivo}
+            />
           </Field>
 
           {producto && (
@@ -120,8 +124,8 @@ export default function Movimientos() {
         </form>
       </Panel>
 
-      <Panel>
-        <div className="flex flex-wrap items-center justify-between gap-4">
+      <Panel className="min-w-0">
+        <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
           <h2 className="text-lg font-extrabold">Historial</h2>
           <Chips
             value={filtro}
@@ -134,7 +138,33 @@ export default function Movimientos() {
             ]}
           />
         </div>
-        <div className="mt-4 overflow-x-auto">
+        {/* Celular: una tarjeta por movimiento */}
+        <ul className="mt-4 divide-y divide-line md:hidden">
+          {lista.map((m) => (
+            <li key={m.id} className="py-3.5">
+              <div className="flex items-center justify-between gap-3">
+                {tipoBadge[m.tipo]}
+                <span className="text-xs font-medium text-muted">{fechaHora(m.fecha)}</span>
+              </div>
+              <div className="mt-2 flex items-start justify-between gap-3">
+                <p className="min-w-0 flex-1 text-sm font-bold">{m.productoNombre}</p>
+                <div className="shrink-0 text-right">
+                  <p className={`font-num text-base font-semibold ${m.cantidad < 0 ? 'text-danger' : 'text-brand'}`}>
+                    {m.cantidad > 0 ? `+${m.cantidad}` : m.cantidad}
+                  </p>
+                  <p className="font-num text-xs font-medium text-muted">Stock: {m.stockFinal}</p>
+                </div>
+              </div>
+              <p className="mt-1 text-xs font-medium text-muted">
+                {m.motivo} · {m.usuario}
+              </p>
+            </li>
+          ))}
+          {!lista.length && <li className="py-10 text-center text-sm font-medium text-muted">No hay movimientos registrados.</li>}
+        </ul>
+
+        {/* Pantallas medianas y grandes: tabla */}
+        <div className="mt-4 hidden overflow-x-auto md:block">
           <table className="w-full min-w-[720px] text-sm">
             <thead className="border-b border-line">
               <tr>

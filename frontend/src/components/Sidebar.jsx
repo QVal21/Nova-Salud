@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LogOut, Plus, X } from 'lucide-react'
+import { LogOut, X } from 'lucide-react'
 import { navItems } from '../config/nav'
 import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
@@ -20,15 +20,7 @@ export default function Sidebar({ open, onClose }) {
           }`}
       >
         <div className="flex items-center justify-between px-6 pt-7 pb-6">
-          <div className="flex items-center gap-3">
-            <span className="grid size-10 place-items-center rounded-2xl bg-surface text-brand">
-              <Plus strokeWidth={3} className="size-5" />
-            </span>
-            <div className="leading-tight">
-              <p className="text-base font-extrabold">Nova Salud</p>
-              <p className="text-xs font-semibold">Botica</p>
-            </div>
-          </div>
+          <img src="/logo.png" alt="Nova Salud Botica" className="h-12 w-auto" />
           <button
             onClick={onClose}
             className="rounded-xl p-2 hover:bg-surface/40 lg:hidden"

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Printer } from 'lucide-react'
 import { useData } from '../context/DataContext'
 import { Badge, Chips, EmptyRow, MetricStrip, Modal, Panel, SearchBox, btn, td, th } from '../components/ui'
+import Boleta from '../components/Boleta'
 import { diasDesde, esHoy, fechaHora, normalizar, soles } from '../utils/format'
 
 export const metodoLabel = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', yape: 'Yape / Plin' }
@@ -89,6 +90,7 @@ export function DetalleVenta({ venta, onClose }) {
         </button>
       }
     >
+      {venta && <Boleta venta={venta} />}
       {venta && (
         <div className="text-sm">
           <dl className="grid grid-cols-2 gap-3">

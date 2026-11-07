@@ -72,7 +72,7 @@ export default function Dashboard() {
       />
 
       <section className="grid gap-6 lg:grid-cols-5">
-        <div className="rounded-[28px] bg-surface p-6 ring-1 ring-line lg:col-span-3">
+        <div className="rounded-3xl bg-surface p-4 ring-1 ring-line sm:rounded-[28px] sm:p-6 lg:col-span-3">
           <div className="flex items-baseline justify-between gap-4">
             <h2 className="text-lg font-extrabold">Ventas de los últimos 7 días</h2>
             <span className="font-num text-sm font-semibold text-muted">{soles(semana.reduce((s, d) => s + d.total, 0))}</span>
@@ -93,7 +93,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="rounded-[28px] bg-surface p-6 ring-1 ring-line lg:col-span-2">
+        <div className="rounded-3xl bg-surface p-4 ring-1 ring-line sm:rounded-[28px] sm:p-6 lg:col-span-2">
           <h2 className="text-lg font-extrabold">Más vendidos esta semana</h2>
           <ol className="mt-4 divide-y divide-line">
             {masVendidos.map((p, i) => (
@@ -113,7 +113,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <section className="rounded-[28px] bg-surface p-6 ring-1 ring-line">
+      <section className="rounded-3xl bg-surface p-4 ring-1 ring-line sm:rounded-[28px] sm:p-6">
         <div className="flex items-baseline justify-between">
           <h2 className="text-lg font-extrabold">Stock crítico</h2>
           <Link to="/alertas" className="text-sm font-bold text-brand hover:underline">Ver todas</Link>

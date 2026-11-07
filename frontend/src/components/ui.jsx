@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { Search, X } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Check, ChevronDown, Search, X } from 'lucide-react'
 
 export const btn = {
   primary:
@@ -28,7 +28,7 @@ export function PageHeader({ description, children }) {
 }
 
 export function Panel({ className = '', children }) {
-  return <section className={`rounded-[28px] bg-surface p-6 ring-1 ring-line ${className}`}>{children}</section>
+  return <section className={`rounded-3xl bg-surface p-4 ring-1 ring-line sm:rounded-[28px] sm:p-6 ${className}`}>{children}</section>
 }
 
 const badgeStyles = {
@@ -103,6 +103,127 @@ export function Chips({ options, value, onChange }) {
   )
 }
 
+// Cierra un menú al hacer clic fuera o con Escape
+function useCerrarMenu(abierto, cerrar, ref) {
+  useEffect(() => {
+    if (!abierto) return
+    const fuera = (e) => !ref.current?.contains(e.target) && cerrar()
+    const esc = (e) => e.key === 'Escape' && cerrar()
+    document.addEventListener('mousedown', fuera)
+    window.addEventListener('keydown', esc)
+    return () => {
+      document.removeEventListener('mousedown', fuera)
+      window.removeEventListener('keydown', esc)
+    }
+  }, [abierto, cerrar, ref])
+}
+
+// Lista de opciones con el estilo común de todos los menús desplegables
+function MenuOpciones({ options, value, onPick, vacio = 'Sin resultados' }) {
+  return (
+    <ul
+      role="listbox"
+      className="absolute inset-x-0 z-20 mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-2xl bg-surface p-1.5 shadow-lg ring-1 ring-line sm:min-w-56"
+    >
+      {options.map((o) => (
+        <li key={o.value} role="option" aria-selected={value === o.value}>
+          <button
+            type="button"
+            onClick={() => onPick(o.value)}
+            className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
+              value === o.value ? 'bg-brand-tint text-brand-deep' : 'hover:bg-page'
+            }`}
+          >
+            <span className="min-w-0 wrap-break-word">{o.label}</span>
+            {value === o.value && <Check className="size-4 shrink-0" />}
+          </button>
+        </li>
+      ))}
+      {!options.length && <li className="px-3 py-2.5 text-sm font-medium text-muted">{vacio}</li>}
+    </ul>
+  )
+}
+
+// Botón que despliega una lista de opciones; al elegir una, el botón muestra su nombre.
+// defaultLabel: texto que se muestra mientras está elegida la primera opción (p. ej. "Categorías" en vez de "Todas").
+export function Dropdown({ id, options, value, onChange, defaultLabel, placeholder = 'Seleccionar', error, ariaLabel, className = '' }) {
+  const [abierto, setAbierto] = useState(false)
+  const ref = useRef(null)
+  const cerrar = useCallback(() => setAbierto(false), [])
+  useCerrarMenu(abierto, cerrar, ref)
+
+  const actual = options.find((o) => o.value === value)
+  const texto = defaultLabel && value === options[0]?.value ? defaultLabel : (actual?.label ?? placeholder)
+
+  return (
+    <div ref={ref} className={`relative ${className}`}>
+      <button
+        id={id}
+        type="button"
+        onClick={() => setAbierto((a) => !a)}
+        aria-haspopup="listbox"
+        aria-expanded={abierto}
+        aria-label={ariaLabel}
+        className={`flex w-full items-center justify-between gap-3 rounded-2xl bg-surface px-4 py-3 text-left text-sm font-semibold ring-1 transition-colors hover:bg-brand-tint focus-visible:ring-2 focus-visible:outline-none ${
+          error ? 'ring-danger' : 'ring-line focus-visible:ring-brand'
+        }`}
+      >
+        <span className="truncate">{texto}</span>
+        <ChevronDown className={`size-4 shrink-0 text-muted transition-transform ${abierto ? 'rotate-180' : ''}`} />
+      </button>
+
+      {abierto && (
+        <MenuOpciones
+          options={options}
+          value={value}
+          onPick={(v) => {
+            onChange(v)
+            setAbierto(false)
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+// Campo de texto con sugerencias: se puede escribir un valor nuevo o elegir uno de la lista.
+export function Combobox({ id, options, value, onChange, placeholder, error, className = '' }) {
+  const [abierto, setAbierto] = useState(false)
+  const ref = useRef(null)
+  const cerrar = useCallback(() => setAbierto(false), [])
+  useCerrarMenu(abierto, cerrar, ref)
+
+  const q = value.trim().toLowerCase()
+  const filtradas = options.filter((o) => o.toLowerCase().includes(q) && o.toLowerCase() !== q)
+
+  return (
+    <div ref={ref} className={`relative ${className}`}>
+      <input
+        id={id}
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value)
+          setAbierto(true)
+        }}
+        onFocus={() => setAbierto(true)}
+        placeholder={placeholder}
+        autoComplete="off"
+        className={inputCls(error)}
+      />
+      {abierto && filtradas.length > 0 && (
+        <MenuOpciones
+          options={filtradas.map((o) => ({ value: o, label: o }))}
+          value={value}
+          onPick={(v) => {
+            onChange(v)
+            setAbierto(false)
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
 export function Segmented({ options, value, onChange }) {
   return (
     <div className="grid gap-1 rounded-2xl bg-page p-1 ring-1 ring-line" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
@@ -111,10 +232,11 @@ export function Segmented({ options, value, onChange }) {
           key={o.value}
           type="button"
           onClick={() => onChange(o.value)}
-          className={`rounded-xl px-2 py-2 text-sm font-semibold transition-colors ${
+          className={`flex items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-sm font-semibold transition-colors ${
             value === o.value ? 'bg-surface text-brand-deep ring-1 ring-line' : 'text-muted hover:text-ink'
           }`}
         >
+          {o.icon && <o.icon className="size-4 shrink-0" />}
           {o.label}
         </button>
       ))}
@@ -130,9 +252,9 @@ export function MetricStrip({ items }) {
       }`}
     >
       {items.map((m) => (
-        <div key={m.label} className="bg-surface p-6">
-          <p className="text-sm font-semibold text-muted">{m.label}</p>
-          <p className="mt-2 font-num text-2xl font-semibold sm:text-3xl">{m.valor}</p>
+        <div key={m.label} className="min-w-0 bg-surface p-4 sm:p-6">
+          <p className="text-xs font-semibold text-muted sm:text-sm">{m.label}</p>
+          <p className="mt-1.5 truncate font-num text-xl font-semibold sm:mt-2 sm:text-3xl">{m.valor}</p>
           {m.nota && <p className="mt-1 text-xs font-medium text-muted">{m.nota}</p>}
         </div>
       ))}
@@ -167,7 +289,7 @@ export function Modal({ open, title, onClose, children, footer, size = 'md' }) {
         aria-modal="true"
         aria-label={title}
         onMouseDown={(e) => e.stopPropagation()}
-        className={`max-h-[92vh] w-full overflow-y-auto rounded-t-[28px] bg-surface p-6 sm:rounded-[28px] ${
+        className={`max-h-[92vh] w-full overflow-y-auto rounded-t-[28px] bg-surface p-5 sm:rounded-[28px] sm:p-6 ${
           size === 'lg' ? 'max-w-2xl' : 'max-w-lg'
         }`}
       >

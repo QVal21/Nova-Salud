@@ -1,3 +1,4 @@
+import mongoose from 'mongoose'
 import Cliente from '../models/Cliente.js'
 import Venta from '../models/Venta.js'
 import AppError from '../utils/AppError.js'
@@ -38,10 +39,30 @@ export async function listar({ q }) {
   })
 }
 
+/**
+ * Crea el cliente y, en la misma transacción, vincula las ventas anteriores hechas con su DNI
+ * que quedaron sin cliente. Requiere el consentimiento del cliente para guardar sus datos.
+ */
 export async function crear(d) {
   const datos = limpiar(d)
   if (await Cliente.exists({ dni: datos.dni })) throw new AppError(409, 'Ya existe un cliente con este DNI', { dni: 'Ya existe un cliente con este DNI' })
-  return Cliente.create(datos)
+  validar([['consentimiento', d.consentimiento !== true, 'El cliente debe autorizar el registro de sus datos']])
+
+  const session = await mongoose.startSession()
+  try {
+    let cliente
+    await session.withTransaction(async () => {
+      ;[cliente] = await Cliente.create([{ ...datos, consentimientoFecha: new Date() }], { session })
+      await Venta.updateMany(
+        { 'cliente.documento': datos.dni, 'cliente.ref': { $exists: false } },
+        { $set: { 'cliente.ref': cliente._id, 'cliente.nombre': cliente.nombre } },
+        { session },
+      )
+    })
+    return cliente
+  } finally {
+    await session.endSession()
+  }
 }
 
 export async function actualizar(id, d) {

@@ -98,7 +98,7 @@ export default function Clientes() {
 }
 
 function ClienteForm({ dnisExistentes, onClose, onSave }) {
-  const [f, setF] = useState({ dni: '', nombre: '', telefono: '', email: '' })
+  const [f, setF] = useState({ dni: '', nombre: '', telefono: '', email: '', consentimiento: false })
   const [err, setErr] = useState({})
   const [errorGeneral, setErrorGeneral] = useState('')
   const set = (k, soloNumeros) => (e) => {
@@ -114,10 +114,11 @@ function ClienteForm({ dnisExistentes, onClose, onSave }) {
     if (!f.nombre.trim()) n.nombre = 'Ingresa el nombre completo'
     if (f.telefono && !/^9\d{8}$/.test(f.telefono)) n.telefono = 'El celular debe tener 9 dígitos y empezar con 9'
     if (f.email && !/^\S+@\S+\.\S+$/.test(f.email)) n.email = 'Correo no válido'
+    if (!f.consentimiento) n.consentimiento = 'El cliente debe autorizar el registro de sus datos'
     setErr(n)
     if (Object.keys(n).length) return
     try {
-      await onSave({ ...f, nombre: f.nombre.trim() })
+      await onSave({ ...f, nombre: f.nombre.trim(), consentimiento: true })
     } catch (error) {
       setErr(error.errores ?? {})
       setErrorGeneral(error.message)
@@ -150,6 +151,21 @@ function ClienteForm({ dnisExistentes, onClose, onSave }) {
         <Field label="Correo (opcional)" htmlFor="email" error={err.email}>
           <input id="email" type="email" value={f.email} onChange={set('email')} className={inputCls(err.email)} />
         </Field>
+        <div>
+          <label className="flex items-start gap-3 text-sm font-medium">
+            <input
+              type="checkbox"
+              checked={f.consentimiento}
+              onChange={(e) => {
+                setF({ ...f, consentimiento: e.target.checked })
+                setErr({ ...err, consentimiento: undefined })
+              }}
+              className="mt-0.5 size-4 shrink-0 accent-brand"
+            />
+            El cliente autoriza el registro de sus datos personales (Ley N.° 29733)
+          </label>
+          {err.consentimiento && <p className="mt-1.5 text-xs font-semibold text-danger">{err.consentimiento}</p>}
+        </div>
       </form>
     </Modal>
   )

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Pencil, Plus } from 'lucide-react'
 import { useData, DIAS_ALERTA_VENCE } from '../context/DataContext'
 import { useAuth } from '../context/AuthContext'
-import { Badge, Chips, EmptyRow, Field, Modal, PageHeader, Panel, SearchBox, btn, inputCls, td, th } from '../components/ui'
+import { Badge, Chips, Combobox, Dropdown, EmptyRow, Field, Modal, PageHeader, Panel, SearchBox, btn, inputCls, td, th } from '../components/ui'
 import { diasHasta, fechaCorta, normalizar, soles } from '../utils/format'
 
 export const estadoProducto = (p) => {
@@ -44,10 +44,14 @@ export default function Inventario() {
       <Panel>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
           <SearchBox value={q} onChange={setQ} placeholder="Buscar por nombre, código, laboratorio o lote" className="lg:w-96" />
-          <select value={categoria} onChange={(e) => setCategoria(e.target.value)} className={`${inputCls(false)} lg:w-56`} aria-label="Categoría">
-            <option>Todas</option>
-            {categorias.map((c) => <option key={c}>{c}</option>)}
-          </select>
+          <Dropdown
+            className="lg:w-56"
+            ariaLabel="Categoría"
+            defaultLabel="Categorías"
+            options={['Todas', ...categorias].map((c) => ({ value: c, label: c }))}
+            value={categoria}
+            onChange={setCategoria}
+          />
         </div>
         <div className="mt-4">
           <Chips
@@ -204,16 +208,28 @@ function ProductoForm({ producto, categorias, proveedores, onClose, onSave }) {
           <input id="presentacion" value={f.presentacion} onChange={set('presentacion')} placeholder="Tableta x 100" className={inputCls(err.presentacion)} />
         </Field>
         <Field label="Categoría" htmlFor="categoria" error={err.categoria}>
-          <input id="categoria" list="lista-categorias" value={f.categoria} onChange={set('categoria')} placeholder="Analgésicos" className={inputCls(err.categoria)} />
-          <datalist id="lista-categorias">{categorias.map((c) => <option key={c} value={c} />)}</datalist>
+          <Combobox
+            id="categoria"
+            options={categorias}
+            value={f.categoria}
+            onChange={(v) => {
+              setF({ ...f, categoria: v })
+              setErr({ ...err, categoria: undefined })
+            }}
+            placeholder="Analgésicos"
+            error={err.categoria}
+          />
         </Field>
         <Field label="Laboratorio" htmlFor="laboratorio">
           <input id="laboratorio" value={f.laboratorio} onChange={set('laboratorio')} placeholder="Genfar" className={inputCls(false)} />
         </Field>
         <Field label="Proveedor" htmlFor="proveedor">
-          <select id="proveedor" value={f.proveedorId} onChange={set('proveedorId')} className={inputCls(false)}>
-            {proveedores.map((p) => <option key={p.id} value={p.id}>{p.razonSocial}</option>)}
-          </select>
+          <Dropdown
+            id="proveedor"
+            options={proveedores.map((p) => ({ value: p.id, label: p.razonSocial }))}
+            value={f.proveedorId}
+            onChange={(v) => setF({ ...f, proveedorId: v })}
+          />
         </Field>
         <Field label="Precio de venta (S/)" htmlFor="precio" error={err.precio}>
           <input id="precio" type="number" min="0" step="0.1" value={f.precio} onChange={set('precio')} className={inputCls(err.precio)} />

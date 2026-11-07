@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { BellRing, Eye, EyeOff, Package, Plus, ShoppingCart } from 'lucide-react'
+import { BellRing, Eye, EyeOff, Lock, Package, ShoppingCart, User } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 const puntos = [
@@ -50,16 +50,20 @@ export default function Login() {
 
   return (
     <div className="grid min-h-screen bg-page lg:grid-cols-2">
-      <section className="hidden flex-col justify-between rounded-r-[48px] bg-brand-soft p-12 text-brand-deep lg:flex">
-        <div className="flex items-center gap-3">
-          <span className="grid size-11 place-items-center rounded-2xl bg-surface text-brand">
-            <Plus strokeWidth={3} className="size-6" />
-          </span>
-          <p className="text-lg font-extrabold">Nova Salud</p>
-        </div>
+      <section className="relative hidden flex-col justify-between overflow-hidden rounded-r-[48px] bg-brand-soft p-12 text-brand-deep lg:flex">
+        {/* Cruz decorativa de fondo, muy tenue */}
+        <svg viewBox="0 0 64 64" aria-hidden="true" className="pointer-events-none absolute -right-16 -bottom-20 size-96 text-surface opacity-20">
+          <rect x="23.4" y="2" width="17.2" height="60" rx="8.6" fill="currentColor" />
+          <rect x="3.7" y="23.85" width="56.6" height="16.3" rx="8.15" fill="currentColor" />
+        </svg>
 
-        <div>
+        <img src="/logo.png" alt="Nova Salud Botica" className="relative h-16 w-auto self-start" />
+
+        <div className="relative">
           <h2 className="max-w-md text-4xl leading-tight font-extrabold tracking-tight">Inventario y ventas de la botica en un solo lugar.</h2>
+          <p className="mt-4 max-w-md text-base font-medium">
+            Controla tu stock, registra cada venta y recibe avisos antes de que algo se agote o venza.
+          </p>
           <ul className="mt-8 space-y-4">
             {puntos.map(({ icon: Icon, texto }) => (
               <li key={texto} className="flex items-center gap-3 font-semibold">
@@ -70,16 +74,13 @@ export default function Login() {
           </ul>
         </div>
 
-        <p className="text-sm font-medium">Sistema de gestión interno</p>
+        <p className="relative text-sm font-medium">Sistema de gestión interno</p>
       </section>
 
       <section className="flex items-center justify-center px-6 py-12">
         <form onSubmit={enviar} noValidate className="w-full max-w-sm">
-          <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <span className="grid size-10 place-items-center rounded-2xl bg-brand-soft text-brand-deep">
-              <Plus strokeWidth={3} className="size-5" />
-            </span>
-            <p className="text-lg font-extrabold">Nova Salud</p>
+          <div className="mb-8 lg:hidden">
+            <img src="/logo.png" alt="Nova Salud Botica" className="h-12 w-auto" />
           </div>
 
           <h1 className="text-3xl font-extrabold tracking-tight">Iniciar sesión</h1>
@@ -94,28 +95,35 @@ export default function Login() {
           <div className="mt-6 space-y-5">
             <div>
               <label htmlFor="usuario" className="mb-2 block text-sm font-semibold">Usuario</label>
-              <input
-                id="usuario"
-                value={form.usuario}
-                onChange={cambiar('usuario')}
-                placeholder="ana.torres"
-                autoComplete="username"
-                autoCapitalize="none"
-                className={`${input} ${errores.usuario ? 'ring-danger' : 'ring-line focus:ring-brand'}`}
-              />
-              {errores.usuario && <p className="mt-1.5 text-xs font-semibold text-danger">{errores.usuario}</p>}
+              <div className="relative">
+                <User className="pointer-events-none absolute inset-y-0 left-4 my-auto size-4 text-muted" />
+                <input
+                  id="usuario"
+                  value={form.usuario}
+                  onChange={cambiar('usuario')}
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  className={`${input} pl-11 ${errores.usuario ? 'ring-danger' : 'ring-line focus:ring-brand'}`}
+                />
+              </div>
+              {errores.usuario ? (
+                <p className="mt-1.5 text-xs font-semibold text-danger">{errores.usuario}</p>
+              ) : (
+                <p className="mt-1.5 text-xs font-medium text-muted">Ejemplo: nayeli.caroline</p>
+              )}
             </div>
 
             <div>
               <label htmlFor="clave" className="mb-2 block text-sm font-semibold">Contraseña</label>
               <div className="relative">
+                <Lock className="pointer-events-none absolute inset-y-0 left-4 my-auto size-4 text-muted" />
                 <input
                   id="clave"
                   type={verClave ? 'text' : 'password'}
                   value={form.clave}
                   onChange={cambiar('clave')}
                   autoComplete="current-password"
-                  className={`${input} pr-12 ${errores.clave ? 'ring-danger' : 'ring-line focus:ring-brand'}`}
+                  className={`${input} pr-12 pl-11 ${errores.clave ? 'ring-danger' : 'ring-line focus:ring-brand'}`}
                 />
                 <button
                   type="button"

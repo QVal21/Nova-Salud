@@ -57,7 +57,7 @@ Todas las rutas, excepto login y health, requieren `Authorization: Bearer <token
 | GET | /api/pedidos | todos | Pedidos de reposición |
 | POST | /api/pedidos | todos | Generar pedido desde una alerta |
 | PATCH | /api/pedidos/:id/recibir | admin | Recibir pedido: suma stock |
-| GET/POST | /api/clientes | todos | Listar con resumen de compras / crear |
+| GET/POST | /api/clientes | todos | Listar con resumen de compras / crear. Al crear se envía `"consentimiento": true` (obligatorio, Ley N.° 29733); se guarda la fecha y se vinculan las ventas previas hechas con ese DNI |
 | PUT | /api/clientes/:id | todos | Editar |
 | GET | /api/clientes/:id/compras | todos | Historial del cliente |
 | GET | /api/proveedores | todos | Listar |

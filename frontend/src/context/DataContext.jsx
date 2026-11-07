@@ -114,9 +114,11 @@ export function DataProvider({ children }) {
     await recargar(['productos', 'movimientos', 'alertas'])
   }
 
+  // Devuelve el cliente creado; se recargan también las ventas porque el backend vincula las anteriores con ese DNI
   const guardarCliente = async (cliente) => {
-    await api.post('/clientes', cliente)
-    await recargar(['clientes'])
+    const creado = await api.post('/clientes', cliente)
+    await recargar(['clientes', 'ventas'])
+    return creado
   }
 
   const guardarProveedor = async (proveedor) => {

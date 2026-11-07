@@ -835,7 +835,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"dni\": \"74125896\",\n  \"nombre\": \"Lucía Valdivia\",\n  \"telefono\": \"987123456\",\n  \"email\": \"\"\n}",
+              "raw": "{\n  \"dni\": \"74125896\",\n  \"nombre\": \"Lucía Valdivia\",\n  \"telefono\": \"987123456\",\n  \"email\": \"\",\n  \"consentimiento\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -865,7 +865,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"dni\": \"45871236\",\n  \"nombre\": \"Repetido\"\n}",
+              "raw": "{\n  \"dni\": \"45871236\",\n  \"nombre\": \"Repetido\",\n  \"consentimiento\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
